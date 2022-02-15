@@ -1,0 +1,2 @@
+postgresql==12.0
+postgresql-contrib

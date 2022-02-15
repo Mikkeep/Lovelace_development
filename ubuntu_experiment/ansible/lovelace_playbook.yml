@@ -18,63 +18,125 @@
           - virtualenv
           - postgresql-client-12
       
-    - name: Init db
-      shell: service postgresql initdb
-      ignore_erros: yes
+- name: Server Configuration
+  hosts: Lovelace
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+  
+  - name: Install psycopg2
+    pip:
+      name: psycopg2-binary
+      state: latest
 
+  - name: Edit PostGreSQL conf
+    ansible.builtin.lineinfile:
+      path: /etc/postgresql/12/main/postgresql.conf
+      regexp: '^#listen_addresses = '
+      line: listen_addresses = 'localhost,192.168.1.14'
+
+  - name: Edit PostGreSQL pg_hba conf
+    ansible.builtin.lineinfile:
+      path: /etc/postgresql/12/main/pg_hba.conf
+      regexp: '^#host '
+      line: host    lovelace    lovelace    192.168.1.14/24 md5
+      
+  - name: Start and enable postgres on startup
+    service: "name={{ item }} state=started enabled=yes"
+    with_items:
+      - postgresql
+      
+  - name: Create db user
+    postgresql_user:
+      state: present
+      name: lovelace
+      password: lovelace
+    become: true
+    become_user: postgres
+      
+  - name: Create Lovelace db
+    postgresql_db:
+      state: present
+      #name: "{{ db_name }}"
+      name: lovelace
+    become: true
+    become_user: postgres
+
+  - name: Grant db user access to Lovelace db
+    postgresql_privs:
+      type: database
+      #database: "{{ db_name }}"
+      database: lovelace
+      #roles: "{{ db_user }}"
+      roles: postgres
+      grant_option: no
+      privs: all
+    become: true
+    become_user: postgres
     
-    - name: Edit PostGreSQL conf
-      ansible.builtin.lineinfile:
-        path: /var/lib/pgsql/9.6/data/postgresql.conf
-        regexp: '^#listen_addresses = '
-        line: listen_addresses = 'localhost,192.168.1.14'
+  - name: Add Lovelace user
+    ansible.builtin.user:
+      name: lovelace
+      group: sudo
+      createhome: yes
 
-    - name: Edit PostGreSQL pg_hba conf
-      ansible.builtin.lineinfile:
-        path: /var/lib/pgsql/9.6/data/pg_hba.conf
-        regexp: '^host '
-        line: host    lovelace    lovelace    192.168.1.14/24 md5
+- name: Lovelave configuration
+  hosts: Lovelace
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+
+  - name: Make lovelace directory
+    ansible.builtin.file:
+      path: /var/lovelace
+      state: directory
+      owner: lovelace
+    
+  - name: Git clone Lovelace to VM
+    ansible.builtin.git:
+      repo: 'https://github.com/miikkas/lovelace.git'
+      dest: /var/lovelace
+      
+  - name: Install RabbitMQ server and Erlang
+    apt:
+      update_cache: yes
+      name:
+        - rabbitmq-server
+        - redis
+        - redis-server
+        - libjpeg-turbo8-dev
+      
+  - name: Copy Requirements.txt to Lovelace
+    copy: src={{ item.src }} dest={{ item.dest }}
+    with_items:
+      - { src: '../requirements.txt', dest: '/home/lovelace/' }
+      
+  - name: Setup venv for Lovelace
+    pip:
+      virtualenv: /var/lovelace/venv
+      requirements: /home/lovelace/requirements.txt
+      virtualenv_python: python3.8
+      
+#  - name: Add Erlang to VM
+#    get_url:
+#        url: https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+#        dest: /home/lovelace/
         
-    - name: Start PostgresSQL
-      shell: sudo systemctl start postgresql-9.6
-      ignore_errors: yes
-      
-    - name: Enable PostgresSQL
-      shell: sudo systemctl enable postgresql-9.6
-      ignore_errors: yes
-
-    - name: Create user
-      shell: sudo -u postgres createuser lovelace
-      ignore_errors: yes
-      
-    - name: Create database
-      shell: sudo -u postgres createdb --owner=lovelace lovelace
-      ignore_errors: yes
-
-    - name: Set users and groups
-      shell: useradd --system lovelace
-      ignore_errors: yes
-      
-    - name: Install Python36u
-      yum:
-        name:
-          - python36u
-          - python36u-pip
-    
-    - name: Python 3.6
-      shell: python3 -m ensurepip
-      become: true
-      
-    - name: Python 3.6
-      shell: pip3 install virtualenv
-      become: true
-      ignore_errors: true
-      
-#    - name: Python 3.6
-#      shell: python3 -m pip install virtualenv
+#  - name: Install Erlang
+#      shell: dpkg -i /home/lovelace/erlang-solutions_2.0_all.deb
 #      become: true
-
-    - name: Install git
-      yum:
-        name:
-          - git
+#      ignore_errors: yes
+      
+#  - name: Apt install Erlang
+#    apt:
+#      update_cache: yes
+#      name:
+#        - erlang
+        
+#  - name: Setup RabbitMQ
+    
