@@ -1,0 +1,107 @@
+- name: Start Server and install packages
+  hosts: Lovelace
+  become: yes
+  become_user: root
+  tasks:
+
+    - name: Enable EPEL
+      get_url:
+        url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        dest: /tmp/epel-release-latest-7.noarch.rpm
+
+#    - name: Install EPEL
+#      yum:
+#        name:
+#          - /tmp/epel-release-latest-7.noarch.rpm
+          
+    - name: Install EPEL
+      shell: yum install -y /tmp/epel-release-latest-7.noarch.rpm
+      become: true
+      ignore_errors: yes
+
+    - name: Enable IUS
+      get_url:
+        url: https://repo.ius.io/ius-release-el7.rpm
+        dest: /tmp/ius-release-el7.rpm
+
+    - name: Install IUS
+      shell: yum install -y /tmp/ius-release-el7.rpm
+      become: true
+      ignore_errors: yes
+    
+#    - name: Install IUS
+#      yum:
+#        name:
+#          - /tmp/ius-release-el7.rpm
+
+    - name: Update repos
+      shell: yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+      become: true
+      ignore_errors: yes
+
+    - name: Install PostGreSQL Server
+      shell: sudo yum install -y postgresql-server
+      
+    - name: Install PostGreSQL Contrib
+      shell: sudo yum install -y postgresql96-contrib
+      
+    - name: Init db
+      shell: sudo /usr/pgsql-9.6/bin/postgresql96-setup initdb
+      ignore_errors: yes
+
+    
+    - name: Edit PostGreSQL conf
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/9.6/data/postgresql.conf
+        regexp: '^#listen_addresses = '
+        line: listen_addresses = 'localhost,192.168.1.14'
+
+    - name: Edit PostGreSQL pg_hba conf
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/9.6/data/pg_hba.conf
+        regexp: '^host '
+        line: host    lovelace    lovelace    192.168.1.14/24 md5
+        
+    - name: Start PostgresSQL
+      shell: sudo systemctl start postgresql-9.6
+      ignore_errors: yes
+      
+    - name: Enable PostgresSQL
+      shell: sudo systemctl enable postgresql-9.6
+      ignore_errors: yes
+
+    - name: Create user
+      shell: sudo -u postgres createuser lovelace
+      ignore_errors: yes
+      
+    - name: Create database
+      shell: sudo -u postgres createdb --owner=lovelace lovelace
+      ignore_errors: yes
+
+    - name: Set users and groups
+      shell: useradd --system lovelace
+      ignore_errors: yes
+      
+    - name: Install Python36u
+      yum:
+        name:
+          - python36u
+          - python36u-pip
+    
+    - name: Python 3.6
+      shell: python3 -m ensurepip
+      become: true
+      
+    - name: Python 3.6
+      shell: pip3 install virtualenv
+      become: true
+      ignore_errors: true
+      
+#    - name: Python 3.6
+#      shell: python3 -m pip install virtualenv
+#      become: true
+
+    - name: Install git
+      yum:
+        name:
+          - git
