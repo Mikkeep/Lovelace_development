@@ -1,0 +1,80 @@
+- name: Start Server and install packages
+  hosts: Lovelace
+  become: yes
+  become_user: root
+  tasks:
+
+    - name: Update repositories
+      apt:
+        update_cache: yes
+
+    - name: Install PostGreSQL Server
+      apt:
+        name:
+          - postgresql-12
+          - postgresql-contrib
+          - python3-pip
+          - python3-dev
+          - virtualenv
+          - postgresql-client-12
+      
+    - name: Init db
+      shell: service postgresql initdb
+      ignore_erros: yes
+
+    
+    - name: Edit PostGreSQL conf
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/9.6/data/postgresql.conf
+        regexp: '^#listen_addresses = '
+        line: listen_addresses = 'localhost,192.168.1.14'
+
+    - name: Edit PostGreSQL pg_hba conf
+      ansible.builtin.lineinfile:
+        path: /var/lib/pgsql/9.6/data/pg_hba.conf
+        regexp: '^host '
+        line: host    lovelace    lovelace    192.168.1.14/24 md5
+        
+    - name: Start PostgresSQL
+      shell: sudo systemctl start postgresql-9.6
+      ignore_errors: yes
+      
+    - name: Enable PostgresSQL
+      shell: sudo systemctl enable postgresql-9.6
+      ignore_errors: yes
+
+    - name: Create user
+      shell: sudo -u postgres createuser lovelace
+      ignore_errors: yes
+      
+    - name: Create database
+      shell: sudo -u postgres createdb --owner=lovelace lovelace
+      ignore_errors: yes
+
+    - name: Set users and groups
+      shell: useradd --system lovelace
+      ignore_errors: yes
+      
+    - name: Install Python36u
+      yum:
+        name:
+          - python36u
+          - python36u-pip
+    
+    - name: Python 3.6
+      shell: python3 -m ensurepip
+      become: true
+      
+    - name: Python 3.6
+      shell: pip3 install virtualenv
+      become: true
+      ignore_errors: true
+      
+#    - name: Python 3.6
+#      shell: python3 -m pip install virtualenv
+#      become: true
+
+    - name: Install git
+      yum:
+        name:
+          - git
