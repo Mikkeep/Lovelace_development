@@ -1,0 +1,171 @@
+- name: Start Server and install packages
+  hosts: Lovelace
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  become: yes
+  become_user: root
+  tasks:
+  
+    - name: Enable EPEL
+      get_url:
+        url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    
+    - name: Install EPEL
+      yum:
+        name:
+          - epel-release-latest-7.noarch.rpm
+          
+    - name: Enable IUS
+      get_url:
+        url: https://rhel7.iuscommunity.org/ius-release.rpm
+    
+    - name: Install IUS
+      yum:
+        name:
+          - ius-release.rpm
+          
+    - name: Enable PostGreSQL
+      get_url:
+        url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    
+    - name: Install EPEL
+      yum:
+        name:
+          - epel-release-latest-7.noarch.rpm
+
+    - name: Install packages
+      yum:
+        name:
+          - nginx
+          - python3-pip
+          - ufw
+          - python3-venv
+          - python3-dev
+          - virtualenv
+          - avahi-daemon
+          - postgresql-12
+          - postgresql-client-12
+          - acl
+
+- name: Server Configuration
+  hosts: webserver
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+  - name: Copy file
+    copy:
+      src: "../requirements.txt"
+      dest: /home/vagrant/
+
+  - name: Copy Flask files to webserver
+    copy: src={{ item.src }} dest={{ item.dest }}
+    with_items:
+      - { src: '../website', dest: '/home/vagrant/' }
+      - { src: '../app.py', dest: '/home/vagrant/' }
+
+  - name: activate venv
+    pip:
+      virtualenv: /home/vagrant/venv
+      requirements: /home/vagrant/requirements.txt
+      virtualenv_python: python3.8    
+      
+  - name: systemd service template copy
+    copy:
+      src: "../.service"
+      dest: /etc/systemd/system/webserv.service
+
+  - name: start systemd service
+    systemd: name=webserv.service state=restarted enabled=yes
+
+  - name: NGINX conf copy
+    template:
+      src: "../.nginx"
+      dest: /etc/nginx/sites-available/webserver.conf
+
+  - name: remove default nginx site config
+    file: path=/etc/nginx/sites-enabled/default state=absent
+
+  - name: enable nginx site
+    file:
+      src: /etc/nginx/sites-available/webserver.conf
+      dest: /etc/nginx/sites-enabled/default
+      state: link
+      force: yes
+
+  - name: restart nginx
+    systemd: name=nginx state=restarted enabled=yes
+
+  - name: start avahi-daemon
+    systemd: name=avahi-daemon state=restarted enabled=yes
+
+
+  - name: open firewall port 8000
+    ufw:
+      rule: allow
+      port: "8000"
+      proto: tcp
+
+  - name: open firewall port 5432
+    ufw:
+      rule: allow
+      port: "5432"
+      proto: tcp
+
+  - name: Allow db server in ufw
+    ufw:
+      rule: allow
+      port: "5433"
+      proto: tcp
+
+#  - name: Enable UFW
+#    ufw:
+#      state: enabled
+
+#  - name: Start FLASK!!!
+#    command: which python
+#    register: check
+
+#  - debug: msg="{{ check.stdout }}"
+  
+  - name: Start and enable postgres on startup
+    service: "name={{ item }} state=started enabled=yes"
+    with_items:
+      - postgresql
+
+  - name: Install psycopg2
+    pip:
+      name: psycopg2-binary
+      state: latest
+
+  - name: Create webserver db
+    postgresql_db:
+      state: present
+      #name: "{{ db_name }}"
+      name: vagrant
+    become: yes
+    become_user: postgres
+
+  - name: Create db user
+    postgresql_user:
+      state: present
+      #name: "{{ db_user }}"
+      name: vagrant
+      #password: "{{ db_password }}"
+      password: vagrant
+    become: yes
+    become_user: postgres
+
+  - name: Grant db user access to webserver db
+    postgresql_privs:
+      type: database
+      #database: "{{ db_name }}"
+      database: vagrant
+      #roles: "{{ db_user }}"
+      roles: vagrant
+      grant_option: no
+      privs: all
+    become: yes
+    become_user: postgres
+
