@@ -1,0 +1,47 @@
+GUIDE TO SETUP LOVELACE VAGRANT VM FOR DEVELOPMENT ENVIRONMENT
+
+REQUIREMENTRS FOR THIS INSTALLATION ARE:
+
+- VAGRANT
+- ANSIBLE
+- VIRTUALBOX
+
+IF ANY OF THE COMMANDS FAIL TRY USING SUDO
+
+navigate to folder /ubuntu_experiment
+
+run following command in terminal:
+vagrant up
+
+this downloads the ubuntu/20.04 box and sets it up using ansible playbook
+
+after complete:
+
+log in to the vagrant box using command:
+vagrant ssh
+
+change user to lovelace by using command:
+su -l lovelace
+
+type in the password of the account to log in
+
+activate venv with command:
+source /home/lovelace/venv/bin/activate
+
+navigate to folder /var/lovelace/webapp/ with command:
+cd /var/lovelace/webapp/
+
+run following commands:
+
+python3 manage.py makemigrations
+python3 manage.py migrate
+python3 manage.py createsuperuser
+
+^ with the last one ( createsuperuser ):
+leave username blank and email
+password same as the user password
+
+python3 manage.py collectstatic
+
+And finally test the server with:
+python3 manage.py runserver

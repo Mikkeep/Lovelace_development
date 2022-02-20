@@ -4,104 +4,257 @@
   become_user: root
   tasks:
 
-    - name: Enable EPEL
-      get_url:
-        url: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-        dest: /tmp/epel-release-latest-7.noarch.rpm
-
-#    - name: Install EPEL
-#      yum:
-#        name:
-#          - /tmp/epel-release-latest-7.noarch.rpm
-          
-    - name: Install EPEL
-      shell: yum install -y /tmp/epel-release-latest-7.noarch.rpm
-      become: true
-      ignore_errors: yes
-
-    - name: Enable IUS
-      get_url:
-        url: https://repo.ius.io/ius-release-el7.rpm
-        dest: /tmp/ius-release-el7.rpm
-
-    - name: Install IUS
-      shell: yum install -y /tmp/ius-release-el7.rpm
-      become: true
-      ignore_errors: yes
-    
-#    - name: Install IUS
-#      yum:
-#        name:
-#          - /tmp/ius-release-el7.rpm
-
-    - name: Update repos
-      shell: yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-      become: true
-      ignore_errors: yes
+    - name: Update repositories
+      apt:
+        update_cache: yes
 
     - name: Install PostGreSQL Server
-      shell: sudo yum install -y postgresql-server
-      
-    - name: Install PostGreSQL Contrib
-      shell: sudo yum install -y postgresql96-contrib
-      
-    - name: Init db
-      shell: sudo /usr/pgsql-9.6/bin/postgresql96-setup initdb
-      ignore_errors: yes
-
-    
-    - name: Edit PostGreSQL conf
-      ansible.builtin.lineinfile:
-        path: /var/lib/pgsql/9.6/data/postgresql.conf
-        regexp: '^#listen_addresses = '
-        line: listen_addresses = 'localhost,192.168.1.14'
-
-    - name: Edit PostGreSQL pg_hba conf
-      ansible.builtin.lineinfile:
-        path: /var/lib/pgsql/9.6/data/pg_hba.conf
-        regexp: '^host '
-        line: host    lovelace    lovelace    192.168.1.14/24 md5
-        
-    - name: Start PostgresSQL
-      shell: sudo systemctl start postgresql-9.6
-      ignore_errors: yes
-      
-    - name: Enable PostgresSQL
-      shell: sudo systemctl enable postgresql-9.6
-      ignore_errors: yes
-
-    - name: Create user
-      shell: sudo -u postgres createuser lovelace
-      ignore_errors: yes
-      
-    - name: Create database
-      shell: sudo -u postgres createdb --owner=lovelace lovelace
-      ignore_errors: yes
-
-    - name: Set users and groups
-      shell: useradd --system lovelace
-      ignore_errors: yes
-      
-    - name: Install Python36u
-      yum:
+      apt:
         name:
-          - python36u
-          - python36u-pip
-    
-    - name: Python 3.6
-      shell: python3 -m ensurepip
-      become: true
+          - postgresql-12
+          - postgresql-contrib
+          - python3-pip
+          - python3-dev
+          - virtualenv
+          - python3.8-venv
+          - postgresql-client-12
+          - apache2
+          - apache2-dev
       
-    - name: Python 3.6
-      shell: pip3 install virtualenv
-      become: true
-      ignore_errors: true
-      
-#    - name: Python 3.6
-#      shell: python3 -m pip install virtualenv
-#      become: true
+- name: Server Configuration
+  hosts: Lovelace
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+  
+  - name: Install psycopg2
+    pip:
+      name: psycopg2-binary
+      state: latest
 
-    - name: Install git
-      yum:
-        name:
-          - git
+  - name: Edit PostGreSQL conf
+    ansible.builtin.lineinfile:
+      path: /etc/postgresql/12/main/postgresql.conf
+      regexp: '^#listen_addresses = '
+      line: listen_addresses = 'localhost,192.168.2.14'
+
+  - name: Edit PostGreSQL pg_hba conf
+    ansible.builtin.lineinfile:
+      path: /etc/postgresql/12/main/pg_hba.conf
+      regexp: '^host '
+      line: host    lovelace    lovelace    192.168.2.14/24 md5
+      #VOI JOUTUA MUUTTAMAAN ILMAN HASTAGIA OLEVAKSI REGEXP, changelog: ilman #
+      
+  - name: Start and enable postgres on startup
+    service: "name={{ item }} state=started enabled=yes"
+    with_items:
+      - postgresql
+      
+  - name: Create db user
+    become: true
+    become_user: postgres
+    postgresql_user:
+      state: present
+      name: lovelace
+      password: lovelace
+
+  - name: Create db user
+    become: true
+    become_user: postgres
+    postgresql_user:
+      state: present
+      name: auxchecker
+      password: lovelace
+      
+  - name: Create Lovelace db
+    postgresql_db:
+      state: present
+      #name: "{{ db_name }}"
+      name: lovelace
+    become: true
+    become_user: postgres
+
+  - name: Grant db user access to Lovelace db
+    postgresql_privs:
+      type: database
+      #database: "{{ db_name }}"
+      database: lovelace
+      #roles: "{{ db_user }}"
+      roles: postgres
+      grant_option: no
+      privs: all
+    become: true
+    become_user: postgres
+
+  - name: Grant auxchecker access to Lovelace db
+    postgresql_privs:
+      type: database
+      #database: "{{ db_name }}"
+      database: lovelace
+      #roles: "{{ db_user }}"
+      roles: auxchecker
+      grant_option: no
+      privs: all
+    become: true
+    become_user: postgres
+    
+  - name: Add Lovelace user
+    ansible.builtin.user:
+      name: lovelace
+      password: "{{ 'lovelace' | password_hash('sha512') }}"
+      shell: /bin/bash
+      groups: sudo, www-data
+      createhome: yes
+
+  - name: Add Lovelace-Celery user
+    ansible.builtin.user:
+      name: lovelace_celery
+      password: "{{ 'lovelace' | password_hash('sha512') }}"
+      shell: /bin/bash
+      groups: sudo, www-data
+
+- name: Lovelave configuration
+  hosts: Lovelace
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+
+  - name: Make lovelace directory
+    ansible.builtin.file:
+      path: /var/lovelace
+      state: directory
+      owner: lovelace
+    
+  - name: Git clone Lovelace to VM
+    ansible.builtin.git:
+      repo: 'https://github.com/lovelace-dev-org/lovelace.git'
+      dest: /var/lovelace
+      version: rapid_dev
+    ignore_errors: true
+      
+  - name: Install RabbitMQ server and Erlang
+    apt:
+      update_cache: yes
+      name:
+        - rabbitmq-server
+        - redis
+        - redis-server
+        - libjpeg-turbo8-dev
+
+  - name: Copy Requirements.txt and Apache conf to Lovelace
+    copy: src={{ item.src }} dest={{ item.dest }}
+    with_items:
+      - { src: '../conf/requirements.txt', dest: '/home/lovelace/' }
+      - { src: '../conf/lovelace.conf', dest: '/etc/apache2/sites-available/000-default.conf' }
+
+  - name: Start Apache2
+    systemd: name=apache2 state=restarted enabled=yes
+
+  - name: Setup venv for Lovelace
+    pip:
+      virtualenv: /home/lovelace/venv
+      virtualenv_command: /usr/bin/python3.8 -m venv
+      requirements: /home/lovelace/requirements.txt
+    become: true
+    become_user: lovelace
+
+  - name: Configure Lovelace settings file
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/__init__.py
+      regexp: '^from '
+      line: "from lovelace.settings.factory import *"
+
+  - name: Configure Lovelace USER
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: \'(USER)\'\:\s'(mydatabaseuser)'
+      line: "	'USER': 'lovelace',"
+      
+  - name: Configure Lovelace PASSWORD
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: \'(PASSWORD)\'\:\s'(mypassword)'
+      line: "	'PASSWORD': 'lovelace',"
+
+  - name: Configure Lovelace NAME
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: \'(NAME)\'\:\s'(mydatabase)'
+      line: "	'NAME': 'lovelace',"
+      
+  - name: Configure Lovelace STATIC_ROOT
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: (STATIC_ROOT)
+      line: "STATIC_ROOT = '/var/www/lovelace/static'"
+      
+  - name: Configure Lovelace MEDIA_ROOT
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: (MEDIA_ROOT =)
+      line: "MEDIA_ROOT = '/var/www/lovelace/upload'"
+
+  - name: Make directory static
+    shell: mkdir /var/lovelace/webapp/static
+
+  - name: Make directory images in upload
+    shell: mkdir -p /var/lovelace/webapp/upload/images
+
+  - name: Configure chown correctly
+    shell: chown -R lovelace /var/lovelace
+  
+  - name: Configure chown correctly
+    shell: chown -R www-data /var/lovelace/webapp/upload
+
+  - name: Add var/www to www-data group
+    shell: sudo chown -R www-data:www-data /var/www
+
+  - name: Add rights to /var/www folder to www-data group members
+    shell: sudo chmod -R g+rw /var/www/
+
+  - name: Add rights to run mod_wsgi
+    shell: chmod a+x /var/lovelace/webapp/lovelace/wsgi.py
+
+- name: Lovelace init
+  hosts: Lovelace
+  become: true
+  become_user: lovelace
+  vars:
+    ansible_python_interpreter: "/home/lovelace/venv/bin/python3.8"
+  tasks:
+
+  - name: Check user
+    shell: whoami
+    register: username_on_VM
+  
+  - debug: var=username_on_VM
+
+  - name: Check user
+    shell: echo $0
+    register: shell_on_VM
+  
+  - debug: var=shell_on_VM
+
+#  - name: usermod lovelace to /bin/bash
+#    shell: usermod --shell /bin/bash lovelace
+  
+#  - name: activate venv for lovelace
+#    shell: source /opt/lovelace/venv/bin/activate
+
+#  - name: Activate venv /opt/lovelace/venv
+#    ansible.builtin.command:
+#      argv:
+#        - usermod --shell /bin/bash lovelace
+#        - source /opt/lovelace/venv/bin/activate
+#    become: true
+#    become_user: lovelace
+      
+#  - name: Run Manage.py makemigrations
+#    shell: python3 manage.py makemigrations
+#    args:
+#      chdir: /var/lovelace/webapp/
