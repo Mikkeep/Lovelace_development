@@ -1,0 +1,7 @@
+---
+
+#Variables for the main Lovelace server
+
+lovelace_ip: 192.168.1.50
+lovelace_user: lovelace
+lovelace_password: lovelace
