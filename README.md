@@ -12,7 +12,7 @@ The steps of automatic installation listed here in short:
 Modify the Ansible variables to suit your needs found in the /ansible/group_vars/all/ folder <br>
 <b> CHECK THE SERVER IP AT MINIMUM </b>
 
-In the root directory, use following command to start the Vagrant with the Ansible playbook:
+In the project root directory, use following command to start the Vagrant with the Ansible playbook:
 
 ```
 vagrant up
