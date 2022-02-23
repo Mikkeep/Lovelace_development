@@ -12,3 +12,5 @@ DJANGO_SUPERUSER_USERNAME=lovelace DJANGO_SUPERUSER_PASSWORD=lovelace \
     python manage.py createsuperuser --email=admin@admin.local --noinput
 
 python3 manage.py collectstatic
+
+. runserver.sh
