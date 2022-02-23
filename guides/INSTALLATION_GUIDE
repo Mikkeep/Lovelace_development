@@ -28,7 +28,8 @@ type in the password of the account to log in
 activate the shellscript setup.sh with the following command:
  . setup.sh
 
-This sets up the environment so we can run the server
+A development server is now running and is accessible trough browser in
 
-And finally test the server with ( Found in the /var/lovelace/webapp directory ):
-. runserver.sh
+http://<your.ip.addr>:8000
+
+from all of the local network
