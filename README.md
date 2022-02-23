@@ -1,7 +1,8 @@
 # Lovelace_development
 Bachelor's Project work for upgrading Lovelace checkers
 
-Link to the original [Lovelace learning environment](https://github.com/lovelace-dev-org/lovelace/tree/rapid_dev "Lovelace Learning environment")
+Link to the original [Lovelace learning environment](https://github.com/lovelace-dev-org/lovelace/tree/rapid_dev "Lovelace Learning environment") <br>
+This project uses personal fork of Lovelaces git environment to implement changes not wanted in the production version. <br>
 
 The setup guide can be found from /guides/INSTALLATION_GUIDE <br>
 This guide assumes usage of Vagrant, Ansible and Virtualbox <br>
