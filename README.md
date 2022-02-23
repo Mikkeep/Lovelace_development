@@ -1,6 +1,8 @@
 # Lovelace_development
 Bachelor's Project work for upgrading Lovelace checkers
 
+Link to the original [Lovelace learning environment](https://github.com/lovelace-dev-org/lovelace/tree/rapid_dev "Lovelace Learning environment")
+
 The setup guide can be found from /guides/INSTALLATION_GUIDE <br>
 This guide assumes usage of Vagrant, Ansible and Virtualbox <br>
 The virtual environment deployed is Ubuntu 20.04 Focal
