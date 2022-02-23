@@ -48,12 +48,14 @@ http://<your.server.ip>:8000
 Things needed to be done for the project
 
 ### Column Name
-- [ ] Separate ansible playbook for each system part contained by main.yml playbook
+- [ ] Separate Ansible playbook for each system part contained by main.yml playbook
   - [ ] lovelace_server_playbook.yml
   - [ ] user_management_playbook.yml
   - [ ] checker_server_playbook.yml
   - [ ] database_playbook.yml
 - [ ] Create separate roles for each of the system parts
+- [ ] Fork the original Lovelace git repo and make the Ansible playbook clone it instead of the original
+- [ ] Create the checker server VM via Vagrant and Ansible
 
 ### Completed Column ✓
 - [x] Assign variables to the playbook for better management
