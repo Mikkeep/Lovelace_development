@@ -8,7 +8,10 @@ Vagrant.configure("2") do |config|
 
     server.vm.hostname = "Lovelace"
 
-    server.vm.network "private_network", ip: "192.168.2.14"
+    #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
+    #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
+    server.vm.network "public_network", ip: "192.168.1.50"
+#    server.vm.network "public_network", ip: "192.168.0.117"
   #  db.vm.network "public_network", bridge: "wlp2s0", ip: "192.168.1.14"
 
     server.vm.provider "virtualbox" do |vb|

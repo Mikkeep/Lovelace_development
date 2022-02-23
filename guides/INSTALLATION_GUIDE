@@ -25,23 +25,10 @@ su -l lovelace
 
 type in the password of the account to log in
 
-activate venv with command:
-source /home/lovelace/venv/bin/activate
+activate the shellscript setup.sh with the following command:
+ . setup.sh
 
-navigate to folder /var/lovelace/webapp/ with command:
-cd /var/lovelace/webapp/
+This sets up the environment so we can run the server
 
-run following commands:
-
-python3 manage.py makemigrations
-python3 manage.py migrate
-python3 manage.py createsuperuser
-
-^ with the last one ( createsuperuser ):
-leave username blank and email
-password same as the user password
-
-python3 manage.py collectstatic
-
-And finally test the server with:
-python3 manage.py runserver
+And finally test the server with ( Found in the /var/lovelace/webapp directory ):
+. runserver.sh

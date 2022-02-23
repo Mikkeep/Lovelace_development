@@ -34,21 +34,28 @@
       name: psycopg2-binary
       state: latest
 
+  - name: Install wsgi
+    pip:
+      name: mod_wsgi
+      state: latest
+
   - name: Edit PostGreSQL conf
     ansible.builtin.lineinfile:
       path: /etc/postgresql/12/main/postgresql.conf
       regexp: '^#listen_addresses = '
-      line: listen_addresses = 'localhost,192.168.2.14'
+#      line: listen_addresses = 'localhost,192.168.0.117'
+      line: listen_addresses = 'localhost,192.168.1.50'
 
   - name: Edit PostGreSQL pg_hba conf
     ansible.builtin.lineinfile:
       path: /etc/postgresql/12/main/pg_hba.conf
       regexp: '^host '
-      line: host    lovelace    lovelace    192.168.2.14/24 md5
+#      line: host    lovelace    lovelace    192.168.0.117/24 md5
+      line: host    lovelace    lovelace    192.168.1.50/24 md5
       #VOI JOUTUA MUUTTAMAAN ILMAN HASTAGIA OLEVAKSI REGEXP, changelog: ilman #
       
   - name: Start and enable postgres on startup
-    service: "name={{ item }} state=started enabled=yes"
+    service: "name={{ item }} state=restarted enabled=yes"
     with_items:
       - postgresql
       
@@ -151,6 +158,7 @@
     with_items:
       - { src: '../conf/requirements.txt', dest: '/home/lovelace/' }
       - { src: '../conf/lovelace.conf', dest: '/etc/apache2/sites-available/000-default.conf' }
+      - { src: '../conf/setup.sh', dest: '/home/lovelace/setup.sh', mode=0777 }
 
   - name: Start Apache2
     systemd: name=apache2 state=restarted enabled=yes
@@ -199,11 +207,19 @@
       regexp: (MEDIA_ROOT =)
       line: "MEDIA_ROOT = '/var/www/lovelace/upload'"
 
+  - name: Configure ALLOWED_HOSTS
+    ansible.builtin.lineinfile:
+      path: /var/lovelace/webapp/lovelace/settings/factory.py
+      regexp: (ALLOWED_HOSTS = )
+      line: ALLOWED_HOSTS = ["127.0.0.1", "192.168.1.50"]
+
   - name: Make directory static
     shell: mkdir /var/lovelace/webapp/static
+    ignore_errors: yes
 
   - name: Make directory images in upload
     shell: mkdir -p /var/lovelace/webapp/upload/images
+    ignore_errors: yes
 
   - name: Configure chown correctly
     shell: chown -R lovelace /var/lovelace
@@ -222,7 +238,7 @@
 
 - name: Lovelace init
   hosts: Lovelace
-  become: true
+#  become: true
   become_user: lovelace
   vars:
     ansible_python_interpreter: "/home/lovelace/venv/bin/python3.8"
@@ -239,22 +255,3 @@
     register: shell_on_VM
   
   - debug: var=shell_on_VM
-
-#  - name: usermod lovelace to /bin/bash
-#    shell: usermod --shell /bin/bash lovelace
-  
-#  - name: activate venv for lovelace
-#    shell: source /opt/lovelace/venv/bin/activate
-
-#  - name: Activate venv /opt/lovelace/venv
-#    ansible.builtin.command:
-#      argv:
-#        - usermod --shell /bin/bash lovelace
-#        - source /opt/lovelace/venv/bin/activate
-#    become: true
-#    become_user: lovelace
-      
-#  - name: Run Manage.py makemigrations
-#    shell: python3 manage.py makemigrations
-#    args:
-#      chdir: /var/lovelace/webapp/
