@@ -1,0 +1,10 @@
+---
+
+lovelace_ip: 192.168.1.50
+lovelace_user: lovelace
+lovelace_password: lovelace
+#To set a new masked password use command: mkpasswd --method=sha-512
+#This asks for a password which return sha, you can copy it to this value
+lovelace_password_masked: $6$ji5N.nfK4$0yoKvaEqBuSqM7MuNXlGh/7rNyjqMg8dT46jTUq.H83FWoaI9U5kPXeM.bQz4okCcjTWkdraeLGUOYWqDWEZZ/
+lovelace_celery_user: lovelace_celery
+lovelace_celery_password: lovelace

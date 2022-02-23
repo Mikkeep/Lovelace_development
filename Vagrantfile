@@ -20,7 +20,7 @@ Vagrant.configure("2") do |config|
     end
 
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/lovelace_playbook.yml"
+    ansible.playbook = "ansible/lovelace_playbook_with_vars.yml"
     end
 end
 end

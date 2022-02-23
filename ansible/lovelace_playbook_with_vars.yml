@@ -3,8 +3,9 @@
   become: yes
   become_user: root
   vars_files:
-    - /vars/main_server_vars.yml
-    - /vars/database_vars.yml
+    - group_vars/all/main_server_vars.yml
+    - group_vars/all/database_vars.yml
+    
   tasks:
 
     - name: Update repositories
@@ -46,8 +47,8 @@
     ansible.builtin.lineinfile:
       path: /etc/postgresql/12/main/postgresql.conf
       regexp: '^#listen_addresses = '
-#      line: listen_addresses = 'localhost,192.168.0.117'
-      line: listen_addresses = 'localhost,{{ lovelace_ip }}'
+#      line: listen_addresses = 'localhost,192.168.1.50'
+      line: "listen_addresses = 'localhost, {{ lovelace_ip }} '"
 
   - name: Edit PostGreSQL pg_hba conf
     ansible.builtin.lineinfile:
@@ -108,7 +109,8 @@
   - name: Add Lovelace user
     ansible.builtin.user:
       name: "{{ lovelace_user }}"
-      password: "{{ '{{ lovelace_password }}' | password_hash('sha512') }}"
+#      password: "{{ '{{ lovelace_password }}' | password_hash('sha512') }}"
+      password: "{{ lovelace_password_masked }}"
       shell: /bin/bash
       groups: sudo, www-data
       createhome: yes
