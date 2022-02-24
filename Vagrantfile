@@ -1,17 +1,17 @@
-# -*- mode: ruby -*-
+# -- mode: ruby --
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
 
   config.vm.define "Lovelace" do |server|
-    server.vm.box = "ubuntu/focal64"
+    server.vm.box = "generic/ubuntu2004"
 
     server.vm.hostname = "Lovelace"
 
-    server.vm.network "private_network", ip: "192.168.2.14"
+  #  server.vm.network "private_network", ip: "192.168.2.14"
   #  db.vm.network "public_network", bridge: "wlp2s0", ip: "192.168.1.14"
 
-    server.vm.provider "virtualbox" do |vb|
+    server.vm.provider "vmware_desktop" do |vb|
       vb.memory = "2048"
       vb.cpus = "2"
     end
@@ -28,7 +28,7 @@ end
 
   #db.vm.network "forwarded_port", guest: 5432, host: 5432, host_ip: "127.0.0.1"
 #  db.vm.network "public_network", bridge: "wlp2s0", ip: "192.168.1.15"
-  
+
 #  db.vm.provider "virtualbox" do |vb|
 #    vb.memory = "2048"
 #    vb.cpus = "2"
