@@ -1,0 +1,29 @@
+---
+
+# Variables for main Lovelace server
+
+lovelace_ip: 130.231.0.167
+lovelace_user: lovelace
+lovelace_password: lovelace
+
+# To set a new masked password use command: mkpasswd --method=sha-512
+# This asks for a password which return sha, you can copy it to this value
+
+lovelace_password_masked: $6$ji5N.nfK4$0yoKvaEqBuSqM7MuNXlGh/7rNyjqMg8dT46jTUq.H83FWoaI9U5kPXeM.bQz4okCcjTWkdraeLGUOYWqDWEZZ/
+lovelace_celery_user: lovelace_celery
+lovelace_celery_password: lovelace
+
+# Variables for setting up PostgreSQL database for Lovelace main server
+
+db_main_user: lovelace
+db_main_user_password: lovelace
+db_checker_user: auxchecker
+db_checker_user_password: lovelace
+db_main_database_name: lovelace
+
+# Variables for Checker server
+
+lovelace_aux_ip: 130.231.0.168
+lovelace_checker_user: auxchecker
+lovelace_checker_password: lovelace
+lovelace_checker_password_masked: $6$ji5N.nfK4$0yoKvaEqBuSqM7MuNXlGh/7rNyjqMg8dT46jTUq.H83FWoaI9U5kPXeM.bQz4okCcjTWkdraeLGUOYWqDWEZZ/
