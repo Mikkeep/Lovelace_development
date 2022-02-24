@@ -10,9 +10,8 @@ Vagrant.configure("2") do |config|
 
     #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
     #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
-    server.vm.network "public_network", ip: "192.168.1.50"
-#    server.vm.network "public_network", ip: "192.168.0.117"
-  #  db.vm.network "public_network", bridge: "wlp2s0", ip: "192.168.1.14"
+#    server.vm.network "public_network", ip: "192.168.1.50"
+    server.vm.network "public_network", ip: "130.231.0.167"
 
     server.vm.provider "virtualbox" do |vb|
       vb.memory = "2048"
@@ -20,26 +19,25 @@ Vagrant.configure("2") do |config|
     end
 
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/lovelace_playbook_with_vars.yml"
+    ansible.playbook = "ansible/lovelace_main.yml"
     end
 end
+
+config.vm.define "Auxchecker" do |aux|
+  aux.vm.box = "ubuntu/focal64"
+  aux.vm.hostname = "Auxchecker"
+
+  #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
+  #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
+  aux.vm.network "public_network", ip: "130.231.0.168"
+
+  aux.vm.provider "virtualbox" do |vb|
+    vb.memory = "2048"
+    vb.cpus = "2"
+  end
+
+  aux.vm.provision "ansible" do |ansible|
+    ansible.playbook = "ansible/checker_server_main.yml"
+  end
 end
-#end
-#config.vm.define "Aux-checker" do |db|
-#  db.vm.box = "generic/rhel7"
-#  db.vm.hostname = "Aux-checker"
-
-  #db.vm.network "forwarded_port", guest: 5432, host: 5432, host_ip: "127.0.0.1"
-#  db.vm.network "public_network", bridge: "wlp2s0", ip: "192.168.1.15"
-  
-#  db.vm.provider "virtualbox" do |vb|
-#    vb.memory = "2048"
-#    vb.cpus = "2"
-#  end
-
-#  db.vm.provision "ansible" do |ansible|
-#    ansible.playbook = "ansible/aux_playbook.yml"
-#    ansible.compatibility_mode = "2.0"
-#  end
-#end
-#end
+end
