@@ -4,7 +4,7 @@ Bachelor's Project work for upgrading Lovelace checkers
 Link to the original [Lovelace learning environment](https://github.com/lovelace-dev-org/lovelace/tree/rapid_dev "Lovelace Learning environment") <br>
 This project uses personal fork of Lovelaces git environment to implement changes not wanted in the production version. <br>
 
-The setup guide can be found from /guides/INSTALLATION_GUIDE <br>
+The setup guide can be found from <b> /guides/INSTALLATION_GUIDE </b> <br>
 This guide assumes usage of Vagrant, Ansible and Virtualbox <br>
 The virtual environment deployed is Ubuntu 20.04 Focal
 
@@ -20,13 +20,13 @@ In the project root directory, use following command to start the Vagrant with t
 ```
 vagrant up
 ```
-
+This command creates two virtual machines, Lovelace and Auxchecker, which are main components of Lovelace.
 Log in to the created Virtual Machine with command:
 
 ```
-vagrant ssh
+vagrant ssh Lovelace
 ```
-
+Lovelace is the main server <br>
 Change user to the lovelace user:
 
 ```
@@ -44,6 +44,18 @@ After this initial setup a development server will be accessible trough <br>
 ```
 http://<your.server.ip>:8000
 ```
+
+Now the main server is running <br> Checker server can be accessed trough command in another shell:
+
+```
+vagrant ssh Auxchecker
+```
+The checker server does not need to be deployed any further, but can be accessed by switching user:
+
+```
+su -l auxchecker
+```
+
 # TODO
 Things needed to be done for the project
 
@@ -51,11 +63,11 @@ Things needed to be done for the project
 - [ ] Separate Ansible playbook for each system part contained by main.yml playbook
   - [ ] lovelace_server_playbook.yml
   - [ ] user_management_playbook.yml
-  - [ ] checker_server_playbook.yml
+  - [x] checker_server_playbook.yml
   - [ ] database_playbook.yml
 - [ ] Create separate roles for each of the system parts
 - [ ] Fork the original Lovelace git repo and make the Ansible playbook clone it instead of the original
-- [ ] Create the checker server VM via Vagrant and Ansible
+- [x] Create the checker server VM via Vagrant and Ansible
 
 ### Completed Column ✓
 - [x] Assign variables to the playbook for better management
