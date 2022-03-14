@@ -10,8 +10,8 @@ Vagrant.configure("2") do |config|
 
     #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
     #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
-#    server.vm.network "public_network", ip: "192.168.1.50"
-    server.vm.network "public_network", ip: "130.231.0.167"
+    server.vm.network "public_network", ip: "192.168.1.50"
+#    server.vm.network "public_network", ip: "130.231.0.167"
 
     server.vm.provider "virtualbox" do |vb|
       vb.memory = "2048"
@@ -29,7 +29,8 @@ config.vm.define "Auxchecker" do |aux|
 
   #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
   #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
-  aux.vm.network "public_network", ip: "130.231.0.168"
+#  aux.vm.network "public_network", ip: "130.231.0.168"
+  aux.vm.network "public_network", ip: "192.168.1.51"
 
   aux.vm.provider "virtualbox" do |vb|
     vb.memory = "2048"

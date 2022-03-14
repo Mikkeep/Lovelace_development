@@ -2,7 +2,8 @@
 
 # Variables for main Lovelace server
 
-lovelace_ip: 130.231.0.167
+#lovelace_ip: 130.231.0.167
+lovelace_ip: 192.168.1.50
 lovelace_user: lovelace
 lovelace_password: lovelace
 
@@ -23,7 +24,8 @@ db_main_database_name: lovelace
 
 # Variables for Checker server
 
-lovelace_aux_ip: 130.231.0.168
+#lovelace_aux_ip: 130.231.0.168
+lovelace_aux_ip: 192.168.1.51
 lovelace_checker_user: auxchecker
 lovelace_checker_password: lovelace
 lovelace_checker_password_masked: $6$ji5N.nfK4$0yoKvaEqBuSqM7MuNXlGh/7rNyjqMg8dT46jTUq.H83FWoaI9U5kPXeM.bQz4okCcjTWkdraeLGUOYWqDWEZZ/
