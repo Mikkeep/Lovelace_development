@@ -1,0 +1,11 @@
+"Not this extension"
+find . -type f -not -path '*/\.*' -print0 | xargs -0 sed -i 's/staticfiles/static/'
+
+
+"Only this extension"
+find . -type f -name "*.html" -print0 | xargs -0 sed -i 's/staticfiles/static/'
+
+"Get files with this part in them"
+grep -Ril staticfiles .
+
+
