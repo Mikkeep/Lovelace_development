@@ -1,5 +1,5 @@
 - name: Start Aux_checker server and install packages
-  hosts: Auxchecker
+  hosts: Auxchecker2
   become: yes
   become_user: root
   vars_files:
@@ -14,20 +14,18 @@
     - name: Install Packages
       apt:
         name:
-          - postgresql-12
-          - postgresql-contrib
           - python3-pip
           - python3-dev
           - virtualenv
-          - python3.8-venv
-          - postgresql-client-12
           - apache2
           - apache2-dev
+          - python3.8-venv
+          - postgresql-client-12
           - nfs-common
           - rpcbind
 
 - name: Server Configuration
-  hosts: Auxchecker
+  hosts: Auxchecker2
   become: yes
   become_method: sudo
   vars:
@@ -43,7 +41,7 @@
       createhome: yes
 
 - name: Checker server configuration
-  hosts: Auxchecker
+  hosts: Auxchecker2
   become: yes
   become_method: sudo
   vars:
@@ -86,15 +84,26 @@
     copy: src={{ item.src }} dest={{ item.dest }}
     with_items:
       - { src: '../conf/requirements.txt', dest: '/home/{{ lovelace_checker_user }}/' }
-      - { src: '../conf/lovelace.conf', dest: '/etc/apache2/sites-available/000-default.conf' }
       - { src: '../conf/setup_checker.sh', dest: '/home/{{ lovelace_checker_user }}/setup.sh', mode=0777 }
       - { src: '../conf/checker.py', dest: '/var/{{ lovelace_checker_user }}/webapp/lovelace/settings/checker.py', mode=0777 }
 
-  - name: Start Apache2
-    systemd: name=apache2 state=restarted enabled=yes
-
   - name: Start RCPBIND
     systemd: name=rpcbind state=restarted enabled=yes
+
+  - name: Make new rabbitMQ user
+    shell: sudo rabbitmqctl add_user lovelace lovelace
+    ignore_errors: true
+
+  - name: Set RabbitMQ user rights
+    shell: sudo rabbitmqctl set_user_tags lovelace administrator
+    ignore_errors: true
+  
+  - name: Set RabbitMQ user permissions
+    shell: sudo rabbitmqctl set_permissions -p / lovelace "." "." ".*"
+    ignore_errors: true
+
+  - name: Start RabbitMQ server
+    systemd: name=rabbitmq-server state=restarted enabled=yes
 
   - name: Make mount folder for NFS
     file:
@@ -105,10 +114,11 @@
   - name: Edit fstab
     lineinfile:
       path: /etc/fstab
-      line: "{{ lovelace_ip }}:/var/{{ lovelace_user }}/webapp/upload /mnt/nfs ro,noexec,nosuid,soft,auto  0 0"
+      line:  "{{ lovelace_ip }}:/var/{{ lovelace_user }}/webapp/upload /mnt/nfs nfs defaults  0 0"
+#      line: "{{ lovelace_ip }}:/var/{{ lovelace_user }}/webapp/upload /mnt/nfs ro,noexec,nosuid,soft,auto  0 0"
 
 #  - name: Mount nfs
-#    shell: sudo mount -a
+#    shell: sudo mount /mnt/nfs/
 
   - name: Configure NFS disks
     lineinfile:
@@ -116,11 +126,29 @@
       regexp: (PRIVATE_STORAGE_FS_PATH = )
       line: PRIVATE_STORAGE_FS_PATH = "/mnt/nfs"
 
+  - name: Configure Worker username
+    lineinfile:
+      path: /var/{{ lovelace_checker_user }}/webapp/lovelace/settings/factory.py
+      regexp: (WORKER_USERNAME = )
+      line: WORKER_USERNAME = "{{ lovelace_checker_user }}"
+
+  - name: Configure Restricted username
+    lineinfile:
+      path: /var/{{ lovelace_checker_user }}/webapp/lovelace/settings/factory.py
+      regexp: (RESTRICTED_USERNAME = )
+      line: RESTRICTED_USERNAME = "{{ lovelace_checker_user }}"
+
   - name: Change Redis conf to accept external cons
     lineinfile:
       path: /etc/redis/redis.conf
+      regexp: (protected-mode yes)
+      line: protected-mode no
+
+  - name: Change Redis conf to accept all external cons
+    lineinfile:
+      path: /etc/redis/redis.conf
       regexp: (bind 127.0.0.1 ::1)
-      line: bind 0.0.0.0
+      line: "#bind {{ lovelace_aux_ip }}"
 
   - name: Restart Redis
     systemd: name=redis state=restarted enabled=yes
@@ -133,17 +161,23 @@
     become: true
     become_user: "{{ lovelace_checker_user }}"
 
+  - name: Install stdlib-list and pylint
+    pip:
+      name:
+        - stdlib-list
+        - pylint
+
   - name: Configure Checker USER
     lineinfile:
       path: /var/{{ lovelace_checker_user }}/webapp/lovelace/settings/factory.py
       regexp: \'(USER)\'\:\s'(mydatabaseuser)'
-      line: "	'USER': '{{ db_checker_user }}',"
+      line: "	'USER': '{{ db_main_user }}',"
       
   - name: Configure Checker PASSWORD
     lineinfile:
       path: /var/{{ lovelace_checker_user }}/webapp/lovelace/settings/factory.py
       regexp: \'(PASSWORD)\'\:\s'(mypassword)'
-      line: "	'PASSWORD': '{{ db_checker_user_password }}',"
+      line: "	'PASSWORD': '{{ db_main_user_password }}',"
 
   - name: Configure Checker NAME
     lineinfile:
@@ -167,7 +201,7 @@
     lineinfile:
       path: /var/{{ lovelace_checker_user }}/webapp/lovelace/settings/factory.py
       regexp: (ALLOWED_HOSTS = )
-      line: ALLOWED_HOSTS = ["127.0.0.1", "{{ lovelace_aux_ip }}"]
+      line: ALLOWED_HOSTS = ["127.0.0.1", "{{ lovelace_aux_ip }}", "{{ lovelace_ip }}"]
 
   - name: Make directory static
     shell: mkdir /var/{{ lovelace_checker_user }}/webapp/static
@@ -192,22 +226,3 @@
   - name: Add rights to run mod_wsgi
     shell: chmod a+x /var/{{ lovelace_checker_user }}/webapp/lovelace/wsgi.py
 
-- name: Aux checker init
-  hosts: Auxchecker
-#  become: true
-  become_user: "{{ lovelace_checker_user }}"
-  vars:
-    ansible_python_interpreter: "/home/{{ lovelace_checker_user }}/venv/bin/python3.8"
-  tasks:
-
-  - name: Check user
-    shell: whoami
-    register: username_on_VM
-  
-  - debug: var=username_on_VM
-
-  - name: Check user
-    shell: echo $0
-    register: shell_on_VM
-  
-  - debug: var=shell_on_VM

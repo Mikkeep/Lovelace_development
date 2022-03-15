@@ -3,14 +3,14 @@
 
 Vagrant.configure("2") do |config|
 
-  config.vm.define "Lovelace" do |server|
+  config.vm.define "Lovelace2" do |server|
     server.vm.box = "ubuntu/focal64"
 
-    server.vm.hostname = "Lovelace"
+    server.vm.hostname = "Lovelace2"
 
     #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
     #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
-    server.vm.network "public_network", ip: "192.168.1.50"
+    server.vm.network "public_network", ip: "192.168.1.52"
 #    server.vm.network "public_network", ip: "130.231.0.167"
 
     server.vm.provider "virtualbox" do |vb|
@@ -23,14 +23,14 @@ Vagrant.configure("2") do |config|
     end
 end
 
-config.vm.define "Auxchecker" do |aux|
+config.vm.define "Auxchecker2" do |aux|
   aux.vm.box = "ubuntu/focal64"
-  aux.vm.hostname = "Auxchecker"
+  aux.vm.hostname = "Auxchecker2"
 
   #ALTERNATE THESE FOR EXAMPLE IF NEED TO CHANGE NETWORKS
   #TO GET THE CORRECT IP SPACE FOR THE CURRENT NETWORK
 #  aux.vm.network "public_network", ip: "130.231.0.168"
-  aux.vm.network "public_network", ip: "192.168.1.51"
+  aux.vm.network "public_network", ip: "192.168.1.53"
 
   aux.vm.provider "virtualbox" do |vb|
     vb.memory = "2048"

@@ -1,5 +1,5 @@
 - name: Start Lovelace server and install packages
-  hosts: Lovelace
+  hosts: Lovelace2
   become: yes
   become_user: root
   vars_files:
@@ -16,18 +16,19 @@
         name:
           - postgresql-12
           - postgresql-contrib
+          - apache2
+          - apache2-dev
           - python3-pip
           - python3-dev
           - virtualenv
           - python3.8-venv
           - postgresql-client-12
-          - apache2
-          - apache2-dev
           - nfs-kernel-server
           - rpcbind
+          - redis
       
 - name: Server Configuration
-  hosts: Lovelace
+  hosts: Lovelace2
   become: yes
   become_method: sudo
   vars:
@@ -122,7 +123,7 @@
       groups: sudo, www-data
 
 - name: Lovelave configuration
-  hosts: Lovelace
+  hosts: Lovelace2
   become: yes
   become_method: sudo
   vars:
@@ -147,20 +148,16 @@
     apt:
       update_cache: yes
       name:
-        - rabbitmq-server
-        - redis
-        - redis-server
+#        - rabbitmq-server
+#        - redis
+#        - redis-server
         - libjpeg-turbo8-dev
 
   - name: Copy Requirements.txt and Apache conf to Lovelace
     copy: src={{ item.src }} dest={{ item.dest }}
     with_items:
       - { src: '../conf/requirements.txt', dest: '/home/{{ lovelace_user }}/' }
-      - { src: '../conf/lovelace.conf', dest: '/etc/apache2/sites-available/000-default.conf' }
       - { src: '../conf/setup.sh', dest: '/home/{{ lovelace_user }}/setup.sh', mode=0777 }
-
-  - name: Start Apache2
-    systemd: name=apache2 state=restarted enabled=yes
 
   - name: Setup venv for Lovelace
     pip:
@@ -210,19 +207,25 @@
     lineinfile:
       path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
       regexp: (ALLOWED_HOSTS = )
-      line: ALLOWED_HOSTS = ["127.0.0.1", "{{ lovelace_ip }}"]
+      line: ALLOWED_HOSTS = ["127.0.0.1", "{{ lovelace_ip }}", "{{ lovelace_aux_ip }}"]
 
   - name: Configure Redis broker url
     lineinfile:
       path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
       regexp: (CELERY_BROKER_URL = )
-      line: CELERY_BROKER_URL = 'amqp://guest:guest@{{ lovelace_aux_ip }}:5672//'
+      line: CELERY_BROKER_URL = 'amqp://lovelace:lovelace@{{ lovelace_aux_ip }}:5672//'
 
-  - name: Configure Redis result config
+  - name: Configure CELERY result config
     lineinfile:
       path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
       regexp: (# Celery settings)
       line: 'CELERY_RESULT_CONFIG = {"host": "{{ lovelace_aux_ip }}", "port": 6379, "db": 0}'
+
+  - name: Configure REDIS result config
+    lineinfile:
+      path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
+      regexp: (REDIS_RESULT_CONFIG = )
+      line: 'REDIS_RESULT_CONFIG = {"host": "{{ lovelace_aux_ip }}", "port": 6379, "db": 0}'
 
   - name: Configure Redis result backend
     lineinfile:
@@ -239,7 +242,19 @@
     lineinfile:
       path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
       regexp: (PRIVATE_STORAGE_FS_PATH = )
-      line: PRIVATE_STORAGE_FS_PATH = "/mnt/nfs"
+      line: PRIVATE_STORAGE_FS_PATH = "/var/{{ lovelace_user }}/webapp/upload"
+
+  - name: Configure Worker username
+    lineinfile:
+      path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
+      regexp: (WORKER_USERNAME = )
+      line: WORKER_USERNAME = "root"
+
+  - name: Configure Restricted username
+    lineinfile:
+      path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
+      regexp: (RESTRICTED_USERNAME = )
+      line: RESTRICTED_USERNAME = "root"
 
   - name: Start NFS
     systemd: name=nfs-server state=started enabled=yes
@@ -259,7 +274,7 @@
     shell: chown -R {{ lovelace_user }} /var/{{ lovelace_user }}
   
   - name: Configure chown correctly
-    shell: chown -R www-data /var/{{ lovelace_user }}/webapp/upload
+    shell: chown -R {{ lovelace_user }} /var/{{ lovelace_user }}/webapp/upload
 
   - name: Add var/www to www-data group
     shell: sudo chown -R www-data:www-data /var/www
@@ -269,23 +284,3 @@
 
   - name: Add rights to run mod_wsgi
     shell: chmod a+x /var/{{ lovelace_user }}/webapp/lovelace/wsgi.py
-
-- name: Lovelace init
-  hosts: Lovelace
-#  become: true
-  become_user: "{{ lovelace_user }}"
-  vars:
-    ansible_python_interpreter: "/home/{{ lovelace_user }}/venv/bin/python3.8"
-  tasks:
-
-  - name: Check user
-    shell: whoami
-    register: username_on_VM
-  
-  - debug: var=username_on_VM
-
-  - name: Check user
-    shell: echo $0
-    register: shell_on_VM
-  
-  - debug: var=shell_on_VM
