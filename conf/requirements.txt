@@ -4,7 +4,8 @@ pygments
 pillow
 django<=3.0
 django-redis
-celery[redis]
+#celery[redis]
+celery==4.4.2
 django-allauth
 django-modeltranslation
 django-model-path-converter
