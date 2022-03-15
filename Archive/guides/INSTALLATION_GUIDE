@@ -1,0 +1,35 @@
+GUIDE TO SETUP LOVELACE VAGRANT VM FOR DEVELOPMENT ENVIRONMENT
+
+REQUIREMENTRS FOR THIS INSTALLATION ARE:
+
+- VAGRANT
+- ANSIBLE
+- VIRTUALBOX
+
+IF ANY OF THE COMMANDS FAIL TRY USING SUDO
+
+navigate to folder /ubuntu_experiment
+
+run following command in terminal:
+vagrant up
+
+this downloads the ubuntu/20.04 box and sets it up using ansible playbook
+
+after complete:
+
+log in to the vagrant box using command:
+vagrant ssh
+
+change user to lovelace by using command:
+su -l lovelace
+
+type in the password of the account to log in
+
+activate the shellscript setup.sh with the following command:
+ . setup.sh
+
+A development server is now running and is accessible trough browser in
+
+http://<your.ip.addr>:8000
+
+from all of the local network

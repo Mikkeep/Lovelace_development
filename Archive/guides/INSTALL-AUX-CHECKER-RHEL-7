@@ -1,0 +1,274 @@
+INSTALLATION
+============
+
+Follow these instructions to install the checking architecture.
+
+
+Enable EPEL
+-----------
+
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo yum install epel-release-latest-7.noarch.rpm
+
+
+Required devel packages
+-----------------------
+sudo yum install readline-devel
+sudo yum install zlib-devel
+sudo yum install sqlite-devel
+sudo yum install libffi-devel
+sudo yum install openssl-devel
+sudo yum install bzip2-devel
+sudo yum install postgresql95-devel
+
+Compile Python 3 from source
+----------------------------
+Download Python 3 latest version
+
+./configure --enable-shared --enable-optimizations --prefix=/usr/local LDFLAGS="-Wl,--rpath=/usr/local/lib"
+make
+sudo make install
+
+sudo ln -s /usr/local/bin/python3.7 /usr/bin/python3
+
+Install RabbitMQ + Redis
+----------------------------------
+sudo yum install rabbitmq-server
+sudo yum install redis
+sudo systemctl enable rabbitmq-server
+sudo systemctl enable redis
+sudo systemctl start rabbitmq-server
+sudo systemctl start redis
+
+Create virtualenv and install Lovelace
+--------------------------------------
+
+python3 -m venv /var/lovelace/venv
+sudo yum install git
+sudo mkdir /var/lovelace/
+sudo cd /var/lovelace/
+sudo git clone https://github.com/enkwolf/lovelace.git
+
+pip install python-magic
+pip install psycopg2
+pip install pygments
+pip install django==2.0
+pip install django-redis
+pip install celery[redis]
+pip install django-allauth
+pip install django-model-path-converter
+pip install django-modeltranslation
+pip install django-reversion
+pip install django-nested-inline
+
+NOTE: at the time of writing celery had to be installed from master branch
+the problem should be fixed in 4.3. when it's released
+pip install --upgrade https://github.com/celery/celery/tarball/master
+
+Create a new configuration file in webapp/lovelace/settings called e.g. checker.py,
+starting with
+
+from lovelace.settings.factory import *
+DEBUG = False
+
+Then edit webapp/lovelace/settings/__init__.py to import your settings as the default
+
+from lovelace.settings.checker import *
+
+
+
+
+
+
+CONFIGURATION
+=============
+
+Follow these instructions to configure Lovelace to use the auxiliary server
+for checking file upload exercise.
+
+xxx.xxx.xxx.xxx = address of the auxiliary server
+yyy.yyy.yyy.yyy = address of the primary server
+
+Configure Lovelace database to allow limited access by the checker
+------------------------------------------------------------------
+(these commands are run on the primary/database server)
+
+sudo -u postgres createuser -P auxchecker
+sudo -u postgres psql -d lovelace
+
+GRANT SELECT ON 
+auth_user,
+courses_contentpage,
+courses_courseinstance,
+courses_fileexercisetest,
+courses_fileexercisetestincludefile,
+courses_fileexercisetest_required_files,
+courses_fileexercisetest_required_instance_files,
+courses_fileexercisetestcommand,
+courses_fileexerciseteststage,
+courses_fileuploadexercisereturnfile,
+courses_includefilesettings,
+courses_instanceincludefile,
+courses_instanceincludefiletoexerciselink,
+courses_instanceincludefiletoinstancelink,
+courses_repeatedtemplateexercisebackendcommand,
+courses_repeatedtemplateexercisebackendfile,
+courses_repeatedtemplateexercisetemplate,
+courses_useranswer,
+courses_userrepeatedtemplateexerciseanswer,
+django_content_type,
+reversion_revision,
+reversion_version 
+TO auxchecker;
+
+GRANT SELECT, INSERT ON
+courses_evaluation
+TO auxchecker;
+
+GRANT SELECT, INSERT, UPDATE ON
+courses_repeatedtemplateexercisesession,
+courses_repeatedtemplateexercisesessioninstance,
+courses_repeatedtemplateexercisesessioninstanceanswer
+TO auxchecker;
+
+GRANT SELECT, UPDATE ON
+courses_useranswer,
+courses_userfileuploadexerciseanswer
+TO auxchecker;
+
+GRANT USAGE, SELECT ON SEQUENCE
+courses_evaluation_id_seq,
+courses_repeatedtemplateexercisesession_id_seq,
+courses_repeatedtemplateexercisesessioninstance_id_seq,
+courses_repeatedtemplateexercisesessioninstanceanswer_id_seq
+TO auxchecker;
+
+Allow the checking server to connect by editing /etc/sysconfig/iptables, add this line:
+
+-A INPUT -p tcp -m tcp -s xxx.xxx.xxx.xxx/32 -dport 5432 -j ACCEPT
+
+Then edit /var/lib/pgsql/9.5/data/pg_hba.conf and add this line
+
+host    lovelace    auxchecker    xxx.xxx.xxx.xxx/32 md5
+
+then:
+sudo systemctl reload iptables
+sudo systemctl reload postgresql-9.5
+
+
+
+Configure NFS to allow access to uploaded files (read-only)
+-----------------------------------------------------------
+On both machines:
+
+sudo yum install nfs-utils rpcbind
+
+
+On primary server:
+Edit /etc/exports and add a line for your uploads folder, e.g.
+
+/var/lovelace/upload xxx.xxx.xxx.xxx(ro,sync,root_squash)
+
+sudo systemctl enable rpcbind
+sudo systemctl enable nfs
+sudo systemctl start rpcbind
+sudo systemctl start nfs
+
+Edit /etc/sysconfig/iptables to allow access
+
+-A INPUT -p tcp -m tcp -s xxx.xxx.xxx.xxx/32 -dport 2049 -j ACCEPT
+
+
+On the auxiliary server:
+
+sudo systemctl enable rpcbind
+sudo systemctl start rpcbind
+sudo mkdir /mnt/nfs
+
+Edit /etc/fstab and add this line:
+
+yyy.yyy.yyy.yyy:/var/lovelace/upload /mnt/nfs   ro,noexec,nosuid,soft,auto  0 0
+
+sudo mount -a
+
+Add this option to your Lovelace configuration:
+
+PRIVATE_STORAGE_FS_PATH = "/mnt/nfs/"
+
+
+
+Setup access to RabbitMQ and Redis
+----------------------------------
+(these commands are run on the auxiliary server)
+
+Configure redis to accept external connections by changing bind to the server's IP
+in /etc/redis.conf
+
+then:
+sudo systemctl restart redis
+
+Allow Lovelace server to connect to these by editing /etc/sysconfig/iptables, add these lines:
+
+-A INPUT -p tcp -m tcp -s yyy.yyy.yyy.yyy/32 -dport 5672 -j ACCEPT
+-A INPUT -p tcp -m tcp -s yyy.yyy.yyy.yyy/32 -dport 6379 -j ACCEPT
+
+then: 
+sudo systemctl reload iptables
+
+
+
+Lovelace settings.py on primary server
+--------------------------------------
+
+Add these lines to connect to external rabbitmq and redis
+
+CELERY_BROKER_URL = 'amqp://guest:guest@xxx.xxx.xxx.xxx:5672//'
+CELERY_RESULT_CONFIG = {"host": "xxx.xxx.xxx.xxx", "port": 6379, "db": 0}
+CELERY_RESULT_BACKEND = 'redis://{host}:{port}/{db}'.format(**CELERY_RESULT_CONFIG)
+
+
+
+RUNNING WORKERS
+===============
+
+Workers must be ran in both servers:
+- auxiliary server will run an unprivileged worker using the configuration 
+  described above; this will run file upload exercises and template exercise
+  generation
+- main server will run a privileged worker using the main configuration;
+  this worker will only run safe tasks from the teacher_tools and stats
+  modules (i.e. it only runs code that's part of Lovelace)
+
+It is also possible to run the privileged worker on its own server following
+mostly the steps described above (it needs different database permissions)
+
+Create User
+-----------
+
+sudo useradd -r checker
+
+
+Running in screen
+-----------------
+
+This is OK for testing, not much else.
+
+Running workers in the auxiliary server:
+
+screen -S checker1
+celery -A lovelace worker -Q default --loglevel=info -n checker1@%h
+
+
+Running workers in the main server:
+
+screen -S taskworker
+celery -A lovelace worker -Q privileged --loglevel=info -n taskworker@%h
+
+
+Configuring Celery deamons
+--------------------------
+
+TBA
+
+
+

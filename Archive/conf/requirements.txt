@@ -1,0 +1,13 @@
+python-magic
+psycopg2-binary
+pygments
+pillow
+django<=3.0
+django-redis
+celery[redis]
+django-allauth
+django-modeltranslation
+django-model-path-converter
+django-reversion
+django-nested-inline
+mod_wsgi

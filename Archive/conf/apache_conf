@@ -1,0 +1,18 @@
+Alias /media/ /var/lovelace/webapp/upload/
+Alias /static/ /var/lovelace/webapp/static/
+
+<Directory /var/lovelace/webapp/static>
+    Require all granted
+</Directory>
+
+<Directory /var/lovelace/webapp/upload>
+    Require all granted
+</Directory>
+WSGIScriptAlias / /var/lovelace/webapp/lovelace/wsgi.py
+WSGIPythonPath /var/lovelace/webapp:/home/lovelace/venv/lib/python3.8/site-packages
+
+<Directory /var/lovelace/webapp/lovelace>
+    <Files wsgi.py>
+        Require all granted
+    </Files>
+</Directory>
