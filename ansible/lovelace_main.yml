@@ -1,5 +1,5 @@
 - name: Start Lovelace server and install packages
-  hosts: Lovelace4
+  hosts: Lovelace
   become: yes
   become_user: root
   vars_files:
@@ -28,7 +28,7 @@
           - redis
       
 - name: Server Configuration
-  hosts: Lovelace4
+  hosts: Lovelace
   become: yes
   become_method: sudo
   vars:
@@ -123,7 +123,7 @@
       groups: sudo, www-data
 
 - name: Lovelave configuration
-  hosts: Lovelace4
+  hosts: Lovelace
   become: yes
   become_method: sudo
   vars:
@@ -141,7 +141,7 @@
     ansible.builtin.git:
       repo: 'https://github.com/Mikkeep/lovelace.git'
       dest: /var/{{ lovelace_user }}
-      version: write_access_revoke_branch
+      version: read_access_revoke_branch
     ignore_errors: true
       
   - name: Install RabbitMQ server and Erlang
