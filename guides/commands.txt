@@ -2,7 +2,8 @@
 find . -type f -not -path '*/\.*' -print0 | xargs -0 sed -i 's/staticfiles/static/'
 
 
-"Only this extension"
+"Change Only .html extension files content of first occurance of staticfiles to static"
+"Run from /var/lovelace/webapp/ folder"
 find . -type f -name "*.html" -print0 | xargs -0 sed -i 's/staticfiles/static/'
 
 "Get files with this part in them"

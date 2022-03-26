@@ -1,0 +1,70 @@
+#Overall hierarchy of functions and methods trough Lovelace and Redis data transfer
+
+############################################################################################
+
+# URL: https://github.com/lovelace-dev-org/lovelace/blob/rapid_dev/webapp/courses/views.py
+# ROUTE: webapp/courses/views.py
+
+# 1. check_answer(request, course, instance, content, revision)
+	- Checks users answer to an exercise
+	- Takes information of the user sent request (user, ip, answer, files)
+	- calls exercise.save_answer(content, user, ip, answer, files, instance, answered_revision)
+	- Saves answer object from user
+	- After this calls exercise.check_answer(content, user, ip, answer, files, answer_object, revision)
+	- If type == "FILE_UPLOAD_EXERCISE":
+		- task_id = evaluation.get("task_id")
+			- if not None:
+				return check_progress(request, course, instance, content, revision, task_id)
+	- Calls exercise.save_evaluation(user, evaluation, answer_object)
+	- Saves evaluation for an exercise, so before this function, the celery worker needs to be executed in order to save the evaluated exercise
+	
+# 2. get_repeated_template_session(request, course, instance, content, revision)
+	- Launches Redis task if not one already running
+	- Gets Celery worker status with rpc_tasks.get_celery_worker_status()
+	- If user has session it picks this one
+	- returns data JSON object with keys: "ready" and "redirect"
+	
+# 3. check_progress(request, course, instance, content, revision, task_id)
+	- calls task = celery_app.AsyncResult(id=task_id)
+    	  info = task.info
+	- if task is ready:
+		- return file_exercise_evaluation(request, course, instance, content, revision, task_id, task)
+
+# 4. file_exercise_evaluation(request, course, instance, content, revision, task_id, task=None)
+	- takes task with task_id if None
+	- gets evaluation_id using task_id and forgets the task after this
+	- makes Evaluation object Evaluation.objects.get(id=evaluation_id)
+	- saves answers, asnwer_count, evaluated_answer, answer_count_str
+	- init Redis with redis.StrictRedis command with the settings from Django
+	- get evaluation JSON from Redis with task_id
+	- evaluation data is got from the JSON as evaluation_tree
+	- then data is compiled with compile_evaluation_data(request, evaluation_tree, evaluation_obj, msg_context)
+	- this data is returned as JSON
+	
+# 5. get_file_exercise_evaluation(request, user, course, instance, exercise, answer)
+	- import generate_results from tasks
+	- get result JSON from args and call generate_results with it
+	- call compile_evaluation_data(request, evaluation_tree, evaluation_obj, msg_context)
+	- return HttpResponse
+	
+# 6. get_repeated_template_session(request, course, instance, content, revision)
+	- initiates the tests task for Redis and provides id's for the task
+	- needs to be changed to provide ready files instead
+	- this way the run_tests can access directly to files without needing to access db
+
+############################################################################################
+
+URL: https://github.com/lovelace-dev-org/lovelace/blob/rapid_dev/webapp/courses/tasks.py
+ROUTE: webapp/courses/tasks.py
+
+# REDIS OPERATIONS IN TASKS
+
+# 1. run_test(self, test_id, answer_id, instance_id, exercise_id, student=False, revision=None)
+	- runs tests for given exercise
+	- this needs to be modded to take ready files
+	- is initiated from run_tests from tasks.py
+
+
+
+############################################################################################
+

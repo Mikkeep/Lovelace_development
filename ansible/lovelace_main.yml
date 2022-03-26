@@ -1,5 +1,5 @@
 - name: Start Lovelace server and install packages
-  hosts: Lovelace2
+  hosts: Lovelace4
   become: yes
   become_user: root
   vars_files:
@@ -28,7 +28,7 @@
           - redis
       
 - name: Server Configuration
-  hosts: Lovelace2
+  hosts: Lovelace4
   become: yes
   become_method: sudo
   vars:
@@ -123,7 +123,7 @@
       groups: sudo, www-data
 
 - name: Lovelave configuration
-  hosts: Lovelace2
+  hosts: Lovelace4
   become: yes
   become_method: sudo
   vars:
@@ -139,18 +139,18 @@
     
   - name: Git clone Lovelace to VM
     ansible.builtin.git:
-      repo: 'https://github.com/lovelace-dev-org/lovelace.git'
+      repo: 'https://github.com/Mikkeep/lovelace.git'
       dest: /var/{{ lovelace_user }}
-      version: rapid_dev
+      version: write_access_revoke_branch
     ignore_errors: true
       
   - name: Install RabbitMQ server and Erlang
     apt:
       update_cache: yes
       name:
-#        - rabbitmq-server
-#        - redis
-#        - redis-server
+        - rabbitmq-server
+        - redis
+        - redis-server
         - libjpeg-turbo8-dev
 
   - name: Copy Requirements.txt and Apache conf to Lovelace
@@ -159,6 +159,22 @@
       - { src: '../conf/requirements.txt', dest: '/home/{{ lovelace_user }}/' }
       - { src: '../conf/setup.sh', dest: '/home/{{ lovelace_user }}/setup.sh', mode=0777 }
 
+  - name: Make new rabbitMQ user
+    shell: sudo rabbitmqctl add_user lovelace lovelace
+    ignore_errors: true
+
+  - name: Set RabbitMQ user rights
+    shell: sudo rabbitmqctl set_user_tags lovelace administrator
+    ignore_errors: true
+  
+  - name: Set RabbitMQ user permissions
+    shell: sudo rabbitmqctl set_permissions -p / lovelace "." "." ".*"
+    ignore_errors: true
+
+  - name: Start RabbitMQ server
+    systemd: name=rabbitmq-server state=restarted enabled=yes
+
+  
   - name: Setup venv for Lovelace
     pip:
       virtualenv: /home/{{ lovelace_user }}/venv
@@ -207,7 +223,7 @@
     lineinfile:
       path: /var/{{ lovelace_user }}/webapp/lovelace/settings/factory.py
       regexp: (ALLOWED_HOSTS = )
-      line: ALLOWED_HOSTS = ["127.0.0.1", "{{ lovelace_ip }}", "{{ lovelace_aux_ip }}"]
+      line: ALLOWED_HOSTS = ["127.0.0.1"]
 
   - name: Configure Redis broker url
     lineinfile:
@@ -256,6 +272,24 @@
       regexp: (RESTRICTED_USERNAME = )
       line: RESTRICTED_USERNAME = "root"
 
+  - name: Change Redis conf to accept external cons
+    lineinfile:
+      path: /etc/redis/redis.conf
+      regexp: (protected-mode yes)
+      line: protected-mode no
+
+  - name: Change Redis conf to accept all external cons
+    lineinfile:
+      path: /etc/redis/redis.conf
+      regexp: (bind 127.0.0.1 ::1)
+      line: "#bind {{ lovelace_aux_ip }}"
+
+  - name: Install stdlib-list and pylint
+    pip:
+      name:
+        - stdlib-list
+        - pylint
+
   - name: Start NFS
     systemd: name=nfs-server state=started enabled=yes
 
@@ -272,7 +306,13 @@
 
   - name: Configure chown correctly
     shell: chown -R {{ lovelace_user }} /var/{{ lovelace_user }}
-  
+
+  - name: Copy File Upload Exercise conf to Lovelace
+    copy: src={{ item.src }} dest={{ item.dest }}
+    with_items:
+      - { src: '../conf/upload', dest: '/var/{{ lovelace_user }}/webapp/', force: yes }
+#      - { src: '../conf/lovelace', dest: '/var/www/', force: yes }
+
   - name: Configure chown correctly
     shell: chown -R {{ lovelace_user }} /var/{{ lovelace_user }}/webapp/upload
 
@@ -284,3 +324,8 @@
 
   - name: Add rights to run mod_wsgi
     shell: chmod a+x /var/{{ lovelace_user }}/webapp/lovelace/wsgi.py
+
+  - name: Change content of HTML files in /webapp directory
+    shell:
+      cmd: find . -type f -name "*.html" -print0 | xargs -0 sed -i 's/staticfiles/static/'
+      chdir: /var/{{ lovelace_user }}/webapp

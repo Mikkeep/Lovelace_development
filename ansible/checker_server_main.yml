@@ -1,5 +1,5 @@
 - name: Start Aux_checker server and install packages
-  hosts: Auxchecker2
+  hosts: Auxchecker3
   become: yes
   become_user: root
   vars_files:
@@ -25,7 +25,7 @@
           - rpcbind
 
 - name: Server Configuration
-  hosts: Auxchecker2
+  hosts: Auxchecker3
   become: yes
   become_method: sudo
   vars:
@@ -41,7 +41,7 @@
       createhome: yes
 
 - name: Checker server configuration
-  hosts: Auxchecker2
+  hosts: Auxchecker3
   become: yes
   become_method: sudo
   vars:
