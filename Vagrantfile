@@ -3,10 +3,10 @@
 
 Vagrant.configure("2") do |config|
 
-  config.vm.define "Lovelace4" do |server|
+  config.vm.define "Lovelace" do |server|
     server.vm.box = "ubuntu/focal64"
 
-    server.vm.hostname = "Lovelace4"
+    server.vm.hostname = "Lovelace"
 
     config.vm.network :forwarded_port, guest: 8000, host: 8000
 
