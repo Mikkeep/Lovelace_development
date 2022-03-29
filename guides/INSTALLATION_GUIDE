@@ -25,7 +25,7 @@ su -l lovelace
 
 type in the password of the account to log in
 
-activate the shellscript setup.sh with the following command:
+activate the shellscript setup.sh in the user's home directory with the following command:
  . setup.sh
 
 A development server is now running and is accessible trough browser in
