@@ -14,6 +14,16 @@ For manual installation a guide in /guides/INSTALL-RHEL-7 can be used
 
 The steps of automatic installation listed here in short:
 
+<b> #################################################################################### </b>
+
+Current development version can be started with just command:
+
+```
+vagrant up
+```
+This starts one virtual machine with everything on it, with just port forwarding, so no IP configuration needed. Then start the main server and checker service with different terminal windows on the same machine and it works. <br> <br>
+<b> #################################################################################### </b>
+
 Modify the Ansible variables to suit your needs found in the /ansible/group_vars/all/ folder <br>
 <b> CHECK THE SERVER IP AT MINIMUM </b>
 
