@@ -3,6 +3,8 @@ Bachelor's Project work for upgrading Lovelace checkers
 
 Link to the original [Lovelace learning environment](https://github.com/lovelace-dev-org/lovelace/tree/rapid_dev "Lovelace Learning environment") <br>
 This project uses personal fork of Lovelaces git environment to implement changes not wanted in the production version. <br>
+[Link](https://github.com/Mikkeep/lovelace/tree/read_access_revoke_branch "Link")
+ to the fork
 
 The setup guide can be found from <b> /guides/INSTALLATION_GUIDE </b> <br>
 This guide assumes usage of Vagrant, Ansible and Virtualbox <br>
