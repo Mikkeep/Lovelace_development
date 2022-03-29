@@ -4,6 +4,8 @@ source /home/lovelace/venv/bin/activate
 
 cd /var/lovelace/webapp/
 
+find . -type f -name "*.html" -print0 | xargs -0 sed -i 's/staticfiles/static/'
+
 python3 manage.py makemigrations
 
 python3 manage.py migrate
